@@ -72,6 +72,7 @@ fun SafeBuildApp() {
     var findings by remember { mutableStateOf<List<Finding>>(emptyList()) }
     var status by remember { mutableStateOf("Ready for a local scan") }
     var targetUrl by remember { mutableStateOf("") }
+    var urlAuditing by remember { mutableStateOf(false) }
     var showAbout by remember { mutableStateOf(false) }
     val tutorialPrefs = remember { context.getSharedPreferences("safebuild_onboarding", android.content.Context.MODE_PRIVATE) }
     var showTutorial by remember { mutableStateOf(!tutorialPrefs.getBoolean("completed", false)) }
@@ -205,8 +206,25 @@ fun SafeBuildApp() {
                             Text("Live website header audit", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             OutlinedTextField(value = targetUrl, onValueChange = { targetUrl = it }, modifier = Modifier.fillMaxWidth(), label = { Text("https://example.com") }, singleLine = true)
                             Text("Remote audit requires an internet connection and only checks a small set of HTTP headers.", style = MaterialTheme.typography.bodySmall)
-                            Button(onClick = { status = "Live URL audit is a planned next module; local file scanning works independently." }, modifier = Modifier.fillMaxWidth()) {
-                                Icon(Icons.Default.Language, null); Spacer(Modifier.width(8.dp)); Text("Audit URL")
+                            Button(enabled = !urlAuditing, onClick = {
+                                val raw = targetUrl.trim()
+                                val parsed = runCatching { Uri.parse(if (raw.startsWith("https://") || raw.startsWith("http://")) raw else "https://" + raw) }.getOrNull()
+                                if (parsed == null || parsed.host.isNullOrBlank() || parsed.scheme !in setOf("https", "http")) {
+                                    status = "Enter a valid website hostname"
+                                } else {
+                                    urlAuditing = true
+                                    status = "Checking website response headers…"
+                                    (context as? ComponentActivity)?.lifecycleScope?.launch {
+                                        val result = withContext(Dispatchers.IO) { runCatching { auditUrl(parsed.toString()) } }
+                                        findings = result.getOrElse { listOf(Finding("Info", "URL audit could not complete", parsed.host ?: raw, it.message ?: "Connection failed", "Check the URL and connection. Audit only sites you are authorized to test.")) }
+                                        urlAuditing = false
+                                        status = "URL audit complete • " + findings.size + " finding(s)"
+                                    }
+                                }
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                if (urlAuditing) PulsingShield(Modifier.size(22.dp)) else Icon(Icons.Default.Language, null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(if (urlAuditing) "Auditing website…" else "Audit URL")
                             }
                         }
                     }
@@ -406,4 +424,30 @@ private fun TutorialDialog(step: Int, onStep: (Int) -> Unit, onFinish: () -> Uni
             }
         }
     }
+}
+
+private fun auditUrl(address: String): List<Finding> {
+    val url = java.net.URL(address)
+    val connection = (url.openConnection() as java.net.HttpURLConnection).apply {
+        requestMethod = "GET"; connectTimeout = 7000; readTimeout = 7000
+        instanceFollowRedirects = false
+        setRequestProperty("User-Agent", "SafeBuild-Local-Audit/1.0")
+    }
+    try {
+        val code = connection.responseCode
+        val headers = connection.headerFields.entries.filter { it.key != null }.associate { it.key!!.lowercase() to (it.value?.joinToString("; ") ?: "") }
+        val out = mutableListOf<Finding>()
+        fun missing(header: String, severity: String, why: String, fix: String) {
+            if (headers[header] == null) out += Finding(severity, "Missing " + header + " header", url.host, why, fix)
+        }
+        missing("content-security-policy", "Medium", "No Content Security Policy was observed.", "Define a CSP suited to the site and test in report-only mode first.")
+        missing("strict-transport-security", "Medium", "HSTS was not observed in the response.", "For HTTPS production sites, configure HSTS after confirming HTTPS support across relevant subdomains.")
+        missing("x-content-type-options", "Low", "The response does not advertise nosniff protection.", "Add X-Content-Type-Options: nosniff.")
+        missing("referrer-policy", "Low", "No Referrer-Policy was observed.", "Consider strict-origin-when-cross-origin after reviewing product needs.")
+        missing("permissions-policy", "Info", "No Permissions-Policy was observed.", "Disable browser features the site does not need.")
+        if (code in 300..399) out += Finding("Info", "Redirect response", url.host, "Server returned HTTP " + code + "; redirects are not followed automatically.", "Review the Location target and audit the final destination separately.")
+        if (address.startsWith("http://", true)) out += Finding("High", "Unencrypted HTTP", url.host, "The URL uses plain HTTP.", "Use HTTPS for public sites; never submit credentials over plain HTTP.")
+        if (out.isEmpty()) out += Finding("Info", "Basic header check passed", url.host, "Checked headers were present; this is not a full vulnerability scan.", "Review header values and perform an authorized deeper assessment.")
+        return out
+    } finally { connection.disconnect() }
 }
