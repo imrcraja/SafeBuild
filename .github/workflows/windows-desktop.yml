@@ -23,11 +23,11 @@ jobs:
         run: npm run build
       - name: Run tests
         run: npm test
-      - name: Package Windows x64 installer
+      - name: Package Windows x64 and x86 installers
         run: npm run dist:win
-      - name: Upload installer
+      - name: Upload Windows installers
         uses: actions/upload-artifact@v4
         with:
-          name: SafeBuild-Windows-x64
+          name: SafeBuild-Windows-x64-x86
           path: dist/*.exe
           if-no-files-found: error
