@@ -6,8 +6,8 @@ Local-first security auditing toolkit by **RC Empire**. The repository contains 
 
 ## Downloads and build status
 
-- Android APK: build with Android Studio or download the SafeBuild-debug-apk artifact from a successful Android build workflow run.
-- Windows installer: download the SafeBuild-Windows-x64 artifact from a successful Windows desktop installer workflow run.
+- Android APK: build with Android Studio or download the `SafeBuild-debug-apk` artifact from a successful Android build workflow run.
+- Windows installers: download the `SafeBuild-Windows-x64-x86` artifact from a successful Windows desktop installer workflow run. It should contain separate x64 and x86 (32-bit) installers.
 - Open [Actions](https://github.com/imrcraja/SafeBuild/actions) to see current build status and artifacts. Artifacts are available only after the corresponding workflow succeeds.
 - Linux/macOS packaging scripts are configured as starting points; those packages are not currently CI-tested or release-certified.
 
@@ -20,12 +20,13 @@ Local-first security auditing toolkit by **RC Empire**. The repository contains 
 - Android 7.x and earlier are not supported by this configuration.
 - Android 8.0 is the declared minimum, not a claim that every feature has already been tested on every device. Test on Android 8, 9, 10 and newer before a production release.
 
-### Desktop app
+### Windows desktop app
 
-- **Target platform for the current Windows installer: Windows 10/11, 64-bit.**
-- Windows 7/8/8.1 are not supported or verified with the current Electron 38 dependency. Do not assume the installer will run on them.
-- Linux and macOS packaging commands are included, but minimum distro/macOS versions and cross-platform compatibility are not yet certified. Build and test on each target OS.
-- Windows ARM and 32-bit Windows installers are not configured; current Windows target is x64.
+- **Compatibility target: Windows 7 SP1 and newer**, with separate **x64 (64-bit)** and **ia32/x86 (32-bit)** NSIS installers configured using Electron 22.3.27, the last Electron major line supporting Windows 7.
+- Windows 7 compatibility is a target, not yet verified: test the installer and app on clean Windows 7 SP1 x86/x64 and Windows 10/11 machines before release. Windows updates and system prerequisites may be needed.
+- Windows 10/11 x64 are included in the intended compatibility range. Windows ARM is not configured.
+- The desktop runtime uses an older Electron line to pursue Windows 7 support. It will not receive the same runtime fixes as current Electron releases; use a currently supported Windows version whenever possible.
+- Linux and macOS packaging commands are included, but minimum OS versions and cross-platform compatibility are not certified.
 
 ## Features and platform differences
 
@@ -45,20 +46,20 @@ Local-first security auditing toolkit by **RC Empire**. The repository contains 
 1. Install Android Studio, JDK 17 and Android SDK 35.
 2. Open this repository in Android Studio and let Gradle sync.
 3. Run the :app configuration on an emulator/device, or use **Build → Build APK(s)**.
-4. Debug APK output: app/build/outputs/apk/debug/.
+4. Debug APK output: `app/build/outputs/apk/debug/`.
 
 The Android workflow builds a debug APK on pushes and pull requests to main and uploads it as an Actions artifact if the build succeeds.
 
-## Build Windows EXE installer
+## Build Windows x64 and x86 EXE installers
 
-Requirements: Windows or a compatible build environment, Node.js 20+, npm.
+Requirements: Node.js 20+ and npm on the build machine.
 
     npm install
     npm run build
     npm test
     npm run dist:win
 
-The NSIS installer should be created under dist/. It targets Windows x64 and offers a normal install-directory choice plus Start Menu/Desktop shortcuts. The Windows CI workflow builds and uploads the installer when packaging succeeds.
+The NSIS installers are created under `dist/` with architecture in each filename. The workflow runs packaging on Windows and uploads both installers when packaging succeeds.
 
 ## Build Linux / macOS packages
 
