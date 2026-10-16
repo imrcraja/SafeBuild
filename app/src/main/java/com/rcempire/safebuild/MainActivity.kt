@@ -64,6 +64,7 @@ data class Finding(val severity: String, val title: String, val file: String, va
 @Composable
 fun SafeBuildApp() {
     val context = LocalContext.current
+    var hostOn by remember { mutableStateOf(context.getSharedPreferences("safebuild_host", android.content.Context.MODE_PRIVATE).getBoolean(LocalHostService.KEY_ENABLED, false)) }
     var dark by remember { mutableStateOf(true) }
     var page by remember { mutableStateOf("Home") }
     var selectedUri by remember { mutableStateOf<Uri?>(null) }
