@@ -499,26 +499,41 @@ private fun ClaySecurityLoop(modifier: Modifier = Modifier) {
         val cy = size.height / 2f
         val radius = size.minDimension * .27f
         val orbitPaint = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx())
-        drawCircle(color = Color(0xFF303847), radius = radius * 1.42f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 12.dp.toPx()))
-        drawCircle(color = Cyan.copy(alpha = .42f), radius = radius * 1.42f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = orbitPaint)
+        // Soft neon halo + layered clay orbit (Canvas-only, low GPU cost).
+        drawCircle(color = Cyan.copy(alpha = .055f), radius = radius * 2.05f, center = androidx.compose.ui.geometry.Offset(cx, cy))
+        drawCircle(color = Cyan.copy(alpha = .09f), radius = radius * 1.72f, center = androidx.compose.ui.geometry.Offset(cx, cy))
+        drawCircle(color = Color(0xFF10151F), radius = radius * 1.42f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 17.dp.toPx()))
+        drawCircle(color = Color(0xFF394454), radius = radius * 1.42f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 9.dp.toPx()))
+        drawCircle(color = Cyan.copy(alpha = .72f), radius = radius * 1.42f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()))
+        drawCircle(color = Cyan.copy(alpha = .10f), radius = radius * 1.16f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.dp.toPx()))
         val radians = Math.toRadians(rotation.toDouble())
         val px = cx + kotlin.math.cos(radians).toFloat() * radius * 1.42f
         val py = cy + kotlin.math.sin(radians).toFloat() * radius * .56f
         drawCircle(color = Color(0xFF364253), radius = radius * .36f * breathe, center = androidx.compose.ui.geometry.Offset(cx, cy + 4.dp.toPx()))
         drawCircle(color = Cyan.copy(alpha = .14f), radius = radius * .35f * breathe, center = androidx.compose.ui.geometry.Offset(cx, cy))
+        drawCircle(color = Cyan.copy(alpha = .18f), radius = 16.dp.toPx(), center = androidx.compose.ui.geometry.Offset(px, py))
+        drawCircle(color = Cyan.copy(alpha = .28f), radius = 11.dp.toPx(), center = androidx.compose.ui.geometry.Offset(px, py))
         drawCircle(color = Cyan, radius = 6.dp.toPx(), center = androidx.compose.ui.geometry.Offset(px, py))
-        drawCircle(color = Color.White.copy(alpha = .85f), radius = 2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(px - 2.dp.toPx(), py - 2.dp.toPx()))
+        drawCircle(color = Color.White.copy(alpha = .95f), radius = 2.5.dp.toPx(), center = androidx.compose.ui.geometry.Offset(px - 2.dp.toPx(), py - 2.dp.toPx()))
     }
     Box(modifier, contentAlignment = Alignment.Center) {
         Surface(
             modifier = Modifier.size(68.dp).scale(breathe),
             shape = RoundedCornerShape(22.dp),
             color = Color(0xFF252D3A),
-            shadowElevation = 16.dp,
-            border = androidx.compose.foundation.BorderStroke(1.dp, Cyan.copy(alpha = .5f))
+            shadowElevation = 24.dp,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Cyan.copy(alpha = .82f))
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Shield, contentDescription = "Animated SafeBuild security emblem", tint = Cyan, modifier = Modifier.size(38.dp))
+                Box(contentAlignment = Alignment.Center) {
+                    Surface(
+                        modifier = Modifier.size(48.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        color = Cyan.copy(alpha = .08f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Cyan.copy(alpha = .18f))
+                    ) {}
+                    Icon(Icons.Default.Shield, contentDescription = "Glowing animated SafeBuild security emblem", tint = Cyan, modifier = Modifier.size(38.dp))
+                }
             }
         }
     }
