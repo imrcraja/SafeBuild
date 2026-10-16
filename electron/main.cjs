@@ -9,7 +9,7 @@ function createWindow() {
 }
 app.whenReady().then(() => {
   const script = path.join(__dirname, '..', 'server', 'index.cjs');
-  server = spawn(process.execPath, [script], { stdio: 'inherit', env: { ...process.env, SAFEBUILD_PORT: '4177' } });
+  server = spawn(process.execPath, [script], { stdio: 'inherit', env: { ...process.env, ELECTRON_RUN_AS_NODE: '1', SAFEBUILD_PORT: '4177' } });
   const wait = setInterval(() => {
     if (server.exitCode !== null) { clearInterval(wait); app.quit(); return; }
     if (!win) { clearInterval(wait); createWindow(); }
