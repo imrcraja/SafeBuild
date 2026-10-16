@@ -9,9 +9,14 @@
     "dev": "node --watch server/index.cjs",
     "desktop": "electron .",
     "build": "node scripts/check-build.cjs",
-    "test": "node --test"
+    "test": "node --test",
+    "dist:win": "electron-builder --win nsis --x64",
+    "dist:linux": "electron-builder --linux AppImage deb --x64",
+    "dist:mac": "electron-builder --mac dmg zip"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "adm-zip": "^0.5.16",
     "express": "^5.1.0",
@@ -19,6 +24,55 @@
     "multer": "^2.0.2"
   },
   "devDependencies": {
-    "electron": "^38.2.0"
+    "electron": "^38.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.rcempire.safebuild",
+    "productName": "SafeBuild",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "public/**/*",
+      "package.json",
+      "node_modules/**/*",
+      "!node_modules/electron-builder/**/*",
+      "!node_modules/.cache/**/*"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SafeBuild-${version}-Windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    }
   }
 }
