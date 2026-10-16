@@ -46,8 +46,8 @@ import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.util.zip.ZipInputStream
 
-private val Navy = Color(0xFF0B1020)
-private val Panel = Color(0xFF151E31)
+private val Navy = Color(0xFF161922)
+private val Panel = Color(0xFF1E222D)
 private val Cyan = Color(0xFF00C7F2)
 private val Blue = Color(0xFF1677E8)
 
@@ -142,7 +142,7 @@ fun SafeBuildApp() {
                     tutorialPrefs.edit().putBoolean("completed", true).apply()
                 }) }
                 item {
-                    Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
+                    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 12.dp) {
                         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Surface(shape = RoundedCornerShape(16.dp), color = Blue.copy(alpha = .18f)) {
@@ -150,6 +150,7 @@ fun SafeBuildApp() {
                                 }
                                 Column(Modifier.weight(1f)) {
                                     Text("Build. Scan. Secure.", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                                    ClaySecurityLoop(Modifier.fillMaxWidth().height(132.dp))
                                     Text("Local-first security assistant", color = MaterialTheme.colorScheme.onSurface.copy(alpha = .7f))
                                 }
                             }
@@ -165,7 +166,7 @@ fun SafeBuildApp() {
                     Text("Security workspace", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
                 item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                    Card(shape = RoundedCornerShape(26.dp), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("Local project scan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                             Text("Choose a ZIP or source file. Files are read on this device; findings are heuristic and need review.")
@@ -486,3 +487,40 @@ private fun auditUrl(address: String): List<Finding> {
         return out
     } finally { connection.disconnect() }
 }
+
+
+@Composable
+private fun ClaySecurityLoop(modifier: Modifier = Modifier) {
+    val motion = rememberInfiniteTransition(label = "clay-security-loop")
+    val rotation by motion.animateFloat(0f, 360f, infiniteRepeatable(tween(9000, easing = androidx.compose.animation.core.LinearEasing)), label = "orbit-rotation")
+    val breathe by motion.animateFloat(0.94f, 1.04f, infiniteRepeatable(tween(1800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "clay-breathe")
+    androidx.compose.foundation.Canvas(modifier = modifier) {
+        val cx = size.width / 2f
+        val cy = size.height / 2f
+        val radius = size.minDimension * .27f
+        val orbitPaint = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.dp.toPx())
+        drawCircle(color = Color(0xFF303847), radius = radius * 1.42f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 12.dp.toPx()))
+        drawCircle(color = Cyan.copy(alpha = .42f), radius = radius * 1.42f, center = androidx.compose.ui.geometry.Offset(cx, cy), style = orbitPaint)
+        val radians = Math.toRadians(rotation.toDouble())
+        val px = cx + kotlin.math.cos(radians).toFloat() * radius * 1.42f
+        val py = cy + kotlin.math.sin(radians).toFloat() * radius * .56f
+        drawCircle(color = Color(0xFF364253), radius = radius * .36f * breathe, center = androidx.compose.ui.geometry.Offset(cx, cy + 4.dp.toPx()))
+        drawCircle(color = Cyan.copy(alpha = .14f), radius = radius * .35f * breathe, center = androidx.compose.ui.geometry.Offset(cx, cy))
+        drawCircle(color = Cyan, radius = 6.dp.toPx(), center = androidx.compose.ui.geometry.Offset(px, py))
+        drawCircle(color = Color.White.copy(alpha = .85f), radius = 2.dp.toPx(), center = androidx.compose.ui.geometry.Offset(px - 2.dp.toPx(), py - 2.dp.toPx()))
+    }
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Surface(
+            modifier = Modifier.size(68.dp).scale(breathe),
+            shape = RoundedCornerShape(22.dp),
+            color = Color(0xFF252D3A),
+            shadowElevation = 16.dp,
+            border = androidx.compose.foundation.BorderStroke(1.dp, Cyan.copy(alpha = .5f))
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.Shield, contentDescription = "Animated SafeBuild security emblem", tint = Cyan, modifier = Modifier.size(38.dp))
+            }
+        }
+    }
+}
+
