@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
 
 data class Finding(val severity: String, val title: String, val file: String, val detail: String, val fix: String)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SafeBuildApp() {
     val context = LocalContext.current
