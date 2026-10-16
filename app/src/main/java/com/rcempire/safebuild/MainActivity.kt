@@ -150,7 +150,7 @@ fun SafeBuildApp() {
                                 }
                                 Column(Modifier.weight(1f)) {
                                     Text("Build. Scan. Secure.", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                                    ClaySecurityLoop(Modifier.fillMaxWidth().height(132.dp))
+                                    Shield3DView(Modifier.fillMaxWidth().height(180.dp))
                                     Text("Local-first security assistant", color = MaterialTheme.colorScheme.onSurface.copy(alpha = .7f))
                                 }
                             }
