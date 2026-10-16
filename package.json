@@ -10,7 +10,7 @@
     "desktop": "electron .",
     "build": "node scripts/check-build.cjs",
     "test": "node --test",
-    "dist:win": "electron-builder --win nsis",
+    "dist:win": "electron-builder --win nsis --publish never",
     "dist:linux": "electron-builder --linux AppImage deb --x64",
     "dist:mac": "electron-builder --mac dmg zip"
   },
