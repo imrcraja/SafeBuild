@@ -8,6 +8,17 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -17,6 +28,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +73,9 @@ fun SafeBuildApp() {
     var status by remember { mutableStateOf("Ready for a local scan") }
     var targetUrl by remember { mutableStateOf("") }
     var showAbout by remember { mutableStateOf(false) }
+    val tutorialPrefs = remember { context.getSharedPreferences("safebuild_onboarding", android.content.Context.MODE_PRIVATE) }
+    var showTutorial by remember { mutableStateOf(!tutorialPrefs.getBoolean("completed", false)) }
+    var tutorialStep by remember { mutableIntStateOf(0) }
 
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
@@ -118,6 +136,10 @@ fun SafeBuildApp() {
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(top = 18.dp, bottom = 28.dp)
             ) {
+                item { if (showTutorial) TutorialDialog(step = tutorialStep, onStep = { tutorialStep = it }, onFinish = {
+                    showTutorial = false
+                    tutorialPrefs.edit().putBoolean("completed", true).apply()
+                }) }
                 item {
                     Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface) {
                         Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -169,7 +191,7 @@ fun SafeBuildApp() {
                                 enabled = !scanning,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                if (scanning) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                if (scanning) PulsingShield(Modifier.size(22.dp))
                                 else Icon(Icons.Default.Shield, null)
                                 Spacer(Modifier.width(8.dp))
                                 Text(if (scanning) "Scanning…" else "Scan project")
@@ -301,4 +323,87 @@ private fun scanDocument(context: android.content.Context, uri: Uri, name: Strin
     }
     if (collected.isEmpty()) results += Finding("Info", "No supported text files found", name, "The scanner found no supported, readable text source files.", "Try a ZIP containing HTML, JS, TS, PHP, Python, JSON, CSS, XML, or YAML.")
     return results.distinctBy { "${it.file}:${it.title}" }
+}
+
+
+@Composable
+private fun PulsingShield(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "security-pulse")
+    val scale by transition.animateFloat(
+        initialValue = 0.82f, targetValue = 1.12f,
+        animationSpec = infiniteRepeatable(tween(850, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "shield-scale"
+    )
+    val alpha by transition.animateFloat(
+        initialValue = 0.45f, targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(850), RepeatMode.Reverse),
+        label = "shield-glow"
+    )
+    Icon(Icons.Default.Shield, contentDescription = "Scanning animation",
+        modifier = modifier.scale(scale).alpha(alpha), tint = Cyan)
+}
+
+@Composable
+private fun TutorialDialog(step: Int, onStep: (Int) -> Unit, onFinish: () -> Unit) {
+    val context = LocalContext.current
+    val transition = rememberInfiniteTransition(label = "tutorial-glow")
+    val glow by transition.animateFloat(
+        initialValue = 0.18f, targetValue = 0.5f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "glass-glow"
+    )
+    val steps = listOf(
+        Triple("Welcome to SafeBuild", "Your local-first security workspace by RC Empire. Your project files stay on your device during local scans.", Icons.Default.Security),
+        Triple("Choose a project", "Pick a ZIP or supported source file. SafeBuild checks for common patterns and shows findings with suggested fixes.", Icons.Default.FolderOpen),
+        Triple("Review every finding", "Static scans are hints, not a security guarantee. Check each result before changing code or deploying.", Icons.Default.FindInPage),
+        Triple("Reports & support", "Share your report, switch Day/Night mode, and contact RC Empire whenever you need help.", Icons.Default.Assessment)
+    )
+    Dialog(onDismissRequest = onFinish, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(30.dp),
+            color = Color(0xEE111A2D),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Cyan.copy(alpha = glow)),
+            shadowElevation = 24.dp
+        ) {
+            Column(
+                modifier = Modifier.background(Color(0x3317C7F2), RoundedCornerShape(30.dp)).padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(shape = RoundedCornerShape(14.dp), color = Cyan.copy(alpha = .15f)) {
+                        Icon(Icons.Default.Shield, null, tint = Cyan, modifier = Modifier.padding(12.dp).size(30.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("SAFEBUILD  •  RC EMPIRE", color = Cyan, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text("Quick start guide", color = Color.White.copy(alpha = .75f), style = MaterialTheme.typography.bodySmall)
+                    }
+                    TextButton(onClick = onFinish) { Text("Skip") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    repeat(steps.size) { i ->
+                        Box(Modifier.weight(1f).height(4.dp).background(if (i <= step) Cyan else Color.White.copy(alpha = .16f), RoundedCornerShape(8.dp)))
+                    }
+                }
+                AnimatedContent(targetState = step, transitionSpec = { (fadeIn(tween(300)) + scaleIn(initialScale = .96f, animationSpec = tween(300))).togetherWith(fadeOut(tween(180))) }, label = "tutorial-page") { index ->
+                    val data = steps[index]
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Icon(data.third, null, tint = Cyan, modifier = Modifier.size(54.dp))
+                        Text(data.first, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text(data.second, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = .78f))
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${step + 1} / ${steps.size}", color = Color.White.copy(alpha = .65f), style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.weight(1f))
+                    Button(onClick = { if (step == steps.lastIndex) onFinish() else onStep(step + 1) }) {
+                        Text(if (step == steps.lastIndex) "Let's go" else "Continue")
+                        Spacer(Modifier.width(6.dp))
+                        Icon(if (step == steps.lastIndex) Icons.Default.Check else Icons.Default.ArrowForward, null)
+                    }
+                }
+            }
+        }
+    }
 }
