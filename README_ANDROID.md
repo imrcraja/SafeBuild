@@ -12,6 +12,8 @@ This repository includes a native Android Studio project written in Kotlin and J
 
 ## Current functionality
 - Native Compose dashboard and Day/Night mode toggle.
+- First-launch animated onboarding/tutorial with progress, glass-style panel, Continue and Skip; completion is saved locally so it does not repeat on every launch.
+- Repeating cyan pulse animation while local scan work is in progress.
 - Android Storage Access Framework file picker.
 - Local heuristic text scanning of supported source files and ZIP archives.
 - Shareable text security report.
