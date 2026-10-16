@@ -71,10 +71,9 @@ fun SafeBuildApp() {
     var selectedName by remember { mutableStateOf("") }
     var scanning by remember { mutableStateOf(false) }
     var findings by remember { mutableStateOf<List<Finding>>(emptyList()) }
-    var status by remember { mutableStateOf("Ready for a local scan") }
+    var status by remember { mutableStateOf("Ready") }
     var targetUrl by remember { mutableStateOf("") }
     var urlAuditing by remember { mutableStateOf(false) }
-    var showAbout by remember { mutableStateOf(false) }
     val tutorialPrefs = remember { context.getSharedPreferences("safebuild_onboarding", android.content.Context.MODE_PRIVATE) }
     var showTutorial by remember { mutableStateOf(!tutorialPrefs.getBoolean("completed", false)) }
     var tutorialStep by remember { mutableIntStateOf(0) }
@@ -83,8 +82,9 @@ fun SafeBuildApp() {
         if (uri != null) {
             selectedUri = uri
             selectedName = uri.lastPathSegment?.substringAfterLast('/') ?: "Selected project"
-            status = "Selected: $selectedName"
             findings = emptyList()
+            status = "Selected " + selectedName
+            page = "Scanner"
         }
     }
 
@@ -99,33 +99,34 @@ fun SafeBuildApp() {
                     title = {
                         Column {
                             Text("SafeBuild", fontWeight = FontWeight.ExtraBold)
-                            Text("RC EMPIRE  •  LOCAL SECURITY", style = MaterialTheme.typography.labelSmall)
+                            Text(page.uppercase() + " • RC EMPIRE", style = MaterialTheme.typography.labelSmall)
+                        }
+                    },
+                    navigationIcon = {
+                        if (page != "Home") IconButton(onClick = { page = "Home" }) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back to home")
                         }
                     },
                     actions = {
-                        IconButton(onClick = { dark = !dark }) {
-                            Icon(if (dark) Icons.Default.LightMode else Icons.Default.DarkMode, "Switch theme")
-                        }
-                        IconButton(onClick = { page = "About & Support" }) {
-                            Icon(Icons.Default.Info, "About and support")
-                        }
+                        IconButton(onClick = { page = "Settings" }) { Icon(Icons.Default.Settings, contentDescription = "Settings") }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
                 )
             },
             bottomBar = {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    listOf("Home", "Scanner", "Reports", "Settings").forEach { item ->
+                    listOf("Home", "Scanner", "URL Audit", "Hosting", "Reports").forEach { item ->
                         NavigationBarItem(
                             selected = page == item,
                             onClick = { page = item },
                             icon = {
-                                Icon(when(item) {
+                                Icon(when (item) {
                                     "Scanner" -> Icons.Default.Shield
+                                    "URL Audit" -> Icons.Default.Language
+                                    "Hosting" -> Icons.Default.Public
                                     "Reports" -> Icons.Default.Assessment
-                                    "Settings" -> Icons.Default.Settings
-                                    else -> Icons.Default.Dashboard
-                                }, item)
+                                    else -> Icons.Default.Home
+                                }, contentDescription = item)
                             },
                             label = { Text(item) }
                         )
@@ -138,207 +139,212 @@ fun SafeBuildApp() {
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(top = 18.dp, bottom = 28.dp)
             ) {
-                item { if (showTutorial) TutorialDialog(step = tutorialStep, onStep = { tutorialStep = it }, onFinish = {
-                    showTutorial = false
-                    tutorialPrefs.edit().putBoolean("completed", true).apply()
-                }) }
                 item {
-                    Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 12.dp) {
-                        Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Surface(shape = RoundedCornerShape(16.dp), color = Blue.copy(alpha = .18f)) {
-                                    Icon(Icons.Default.Security, null, tint = Cyan, modifier = Modifier.padding(14.dp).size(36.dp))
-                                }
-                                Column(Modifier.weight(1f)) {
+                    if (showTutorial) TutorialDialog(step = tutorialStep, onStep = { tutorialStep = it }, onFinish = {
+                        showTutorial = false
+                        tutorialPrefs.edit().putBoolean("completed", true).apply()
+                    })
+                }
+                item {
+                    when (page) {
+                        "Home" -> Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Icon(Icons.Default.Security, null, tint = Cyan, modifier = Modifier.size(42.dp))
                                     Text("Build. Scan. Secure.", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                                    Shield3DView(Modifier.fillMaxWidth().height(180.dp))
-                                    Text("Local-first security assistant", color = MaterialTheme.colorScheme.onSurface.copy(alpha = .7f))
+                                    Text("Simple security tools. Choose one task to get started.")
+                                    Text(status, color = Cyan)
                                 }
                             }
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                AssistChip(onClick = {}, label = { Text("Offline file scan") }, leadingIcon = { Icon(Icons.Default.PhoneAndroid, null) })
-                                AssistChip(onClick = {}, label = { Text("Privacy first") }, leadingIcon = { Icon(Icons.Default.Lock, null) })
+                            HomeAction("Scan a project", "Check a ZIP or source file", Icons.Default.FolderOpen) { page = "Scanner" }
+                            HomeAction("Audit a website", "Check common HTTP security headers", Icons.Default.Language) { page = "URL Audit" }
+                            HomeAction("Local web preview", if (hostOn) "Host marked running" else "Start a private preview server", Icons.Default.Public) { page = "Hosting" }
+                            HomeAction("Reports & findings", findings.size.toString() + " finding(s) in latest scan", Icons.Default.Assessment) { page = "Reports" }
+                            OutlinedButton(onClick = { page = "Settings" }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Default.Settings, null); Spacer(Modifier.width(8.dp)); Text("Settings & support")
                             }
-                            Text(status, style = MaterialTheme.typography.bodyMedium, color = Cyan)
                         }
-                    }
-                }
-                item {
-                    Text("Security workspace", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                }
-                item {
-                    Card(shape = RoundedCornerShape(26.dp), elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Local project scan", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            Text("Choose a ZIP or source file. Files are read on this device; findings are heuristic and need review.")
+                        "Scanner" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Project scanner", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text("Choose a ZIP or text source. SafeBuild checks common code patterns and does not execute your project.")
                             OutlinedButton(onClick = { picker.launch(arrayOf("application/zip", "text/*", "application/javascript", "application/json", "application/octet-stream")) }, modifier = Modifier.fillMaxWidth()) {
-                                Icon(Icons.Default.FolderOpen, null)
-                                Spacer(Modifier.width(8.dp))
+                                Icon(Icons.Default.FolderOpen, null); Spacer(Modifier.width(8.dp))
                                 Text(if (selectedName.isBlank()) "Choose project file" else selectedName)
                             }
-                            Button(
-                                onClick = {
-                                    val uri = selectedUri
-                                    if (uri == null) { status = "Choose a ZIP or source file first"; return@Button }
-                                    scanning = true
-                                    status = "Scanning locally…"
-                                    (context as? ComponentActivity)?.lifecycleScope?.launch {
-                                        val result = withContext(Dispatchers.IO) {
-                                            runCatching { scanDocument(context, uri, selectedName) }
-                                        }
-                                        findings = result.getOrElse { listOf(Finding("Info", "Could not read file", selectedName, it.message ?: "File access failed", "Try a supported ZIP or text source file.")) }
-                                        scanning = false
-                                        status = "Scan complete • ${findings.size} finding(s)"
-                                    }
-                                },
-                                enabled = !scanning,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                if (scanning) PulsingShield(Modifier.size(22.dp))
-                                else Icon(Icons.Default.Shield, null)
-                                Spacer(Modifier.width(8.dp))
-                                Text(if (scanning) "Scanning…" else "Scan project")
+                            Button(enabled = !scanning, onClick = {
+                                val uri = selectedUri
+                                if (uri == null) { status = "Choose a ZIP or source file first"; return@Button }
+                                scanning = true
+                                status = "Scanning locally…"
+                                (context as? ComponentActivity)?.lifecycleScope?.launch {
+                                    val result = withContext(Dispatchers.IO) { runCatching { scanDocument(context, uri, selectedName) } }
+                                    findings = result.getOrElse { listOf(Finding("Info", "Could not read file", selectedName, it.message ?: "File access failed", "Try a supported ZIP or text source file.")) }
+                                    scanning = false
+                                    status = "File scan complete • " + findings.size + " finding(s)"
+                                }
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                if (scanning) PulsingShield(Modifier.size(22.dp)) else Icon(Icons.Default.Shield, null)
+                                Spacer(Modifier.width(8.dp)); Text(if (scanning) "Scanning…" else "Scan project")
+                            }
+                            Text("Supported ZIP contents: HTML, JS/TS, PHP, Python, JSON, CSS, XML and YAML.", style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(onClick = { page = "Reports" }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Default.Assessment, null); Spacer(Modifier.width(8.dp)); Text("View scan results")
                             }
                         }
-                    }
-                }
-                item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("Live website header audit", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        "URL Audit" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Website header audit", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text("Use a website you own or have permission to assess. This is a limited header check, not a penetration test.")
                             OutlinedTextField(value = targetUrl, onValueChange = { targetUrl = it }, modifier = Modifier.fillMaxWidth(), label = { Text("https://example.com") }, singleLine = true)
-                            Text("Remote audit requires an internet connection and only checks a small set of HTTP headers.", style = MaterialTheme.typography.bodySmall)
                             Button(enabled = !urlAuditing, onClick = {
                                 val raw = targetUrl.trim()
                                 val parsed = runCatching { Uri.parse(if (raw.startsWith("https://") || raw.startsWith("http://")) raw else "https://" + raw) }.getOrNull()
                                 if (parsed == null || parsed.host.isNullOrBlank() || parsed.scheme !in setOf("https", "http")) {
-                                    status = "Enter a valid website hostname"
+                                    status = "Enter a valid website URL"
                                 } else {
                                     urlAuditing = true
-                                    status = "Checking website response headers…"
+                                    status = "Checking response headers…"
                                     (context as? ComponentActivity)?.lifecycleScope?.launch {
                                         val result = withContext(Dispatchers.IO) { runCatching { auditUrl(parsed.toString()) } }
-                                        findings = result.getOrElse { listOf(Finding("Info", "URL audit could not complete", parsed.host ?: raw, it.message ?: "Connection failed", "Check the URL and connection. Audit only sites you are authorized to test.")) }
+                                        findings = result.getOrElse { listOf(Finding("Info", "URL audit could not complete", parsed.host ?: raw, it.message ?: "Connection failed", "Check the URL and internet connection.")) }
                                         urlAuditing = false
                                         status = "URL audit complete • " + findings.size + " finding(s)"
                                     }
                                 }
                             }, modifier = Modifier.fillMaxWidth()) {
                                 if (urlAuditing) PulsingShield(Modifier.size(22.dp)) else Icon(Icons.Default.Language, null)
-                                Spacer(Modifier.width(8.dp))
-                                Text(if (urlAuditing) "Auditing website…" else "Audit URL")
+                                Spacer(Modifier.width(8.dp)); Text(if (urlAuditing) "Auditing…" else "Audit URL")
+                            }
+                            OutlinedButton(onClick = { page = "Reports" }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Default.Assessment, null); Spacer(Modifier.width(8.dp)); Text("View audit results")
                             }
                         }
-                    }
-                }
-
-                item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                PulsingShield(Modifier.size(30.dp))
-                                Spacer(Modifier.width(10.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text("Local Web Preview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                    Text(if (hostOn) "RUNNING • port 8088" else "STOPPED • device-local server", color = if (hostOn) Cyan else MaterialTheme.colorScheme.onSurface.copy(alpha = .65f), style = MaterialTheme.typography.labelSmall)
+                        "Hosting" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Local web preview", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text("Serves files from SafeBuild's private hosted-site folder on this device only. It does not create a public internet link.")
+                            Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp)) {
+                                Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.Public, null, tint = Cyan, modifier = Modifier.size(32.dp))
+                                    Spacer(Modifier.width(12.dp))
+                                    Column {
+                                        Text(if (hostOn) "Host marked running" else "Host stopped", fontWeight = FontWeight.Bold)
+                                        Text("http://127.0.0.1:8088/", color = Cyan)
+                                    }
                                 }
                             }
-                            Text("Preview files placed in SafeBuild's private hosted-site folder. The root page must be index.html. Local hosting is not a public internet link.", style = MaterialTheme.typography.bodySmall)
-                            Text("http://127.0.0.1:8088/", color = Cyan)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(onClick = {
+                                val starting = !hostOn
+                                val action = if (starting) LocalHostService.ACTION_START else LocalHostService.ACTION_STOP
+                                val intent = Intent(context, LocalHostService::class.java).setAction(action)
+                                runCatching {
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && starting) context.startForegroundService(intent) else context.startService(intent)
+                                    hostOn = starting
+                                    status = if (starting) "Local host start requested" else "Local host stop requested"
+                                }.onFailure { status = "Could not change host state: " + it.message }
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(if (hostOn) Icons.Default.Stop else Icons.Default.PlayArrow, null)
+                                Spacer(Modifier.width(8.dp)); Text(if (hostOn) "Stop local host" else "Start local host")
+                            }
+                            OutlinedButton(onClick = {
+                                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://127.0.0.1:8088/"))) }
+                                    .onFailure { status = "Could not open browser: " + it.message }
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Default.OpenInBrowser, null); Spacer(Modifier.width(8.dp)); Text("Open preview in browser")
+                            }
+                        }
+                        "Reports" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Reports & findings", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Text(status, color = Cyan)
+                            if (findings.isEmpty()) {
+                                Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp)) {
+                                    Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Icon(Icons.Default.Assessment, null, tint = Cyan, modifier = Modifier.size(32.dp))
+                                        Text("No report yet", fontWeight = FontWeight.Bold)
+                                        Text("Run a project scan or URL audit first. Both tools share results here.")
+                                        Button(onClick = { page = "Scanner" }, modifier = Modifier.fillMaxWidth()) { Text("Scan a project") }
+                                        OutlinedButton(onClick = { page = "URL Audit" }, modifier = Modifier.fillMaxWidth()) { Text("Audit a website") }
+                                    }
+                                }
+                            } else {
+                                Text(findings.size.toString() + " finding(s)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                findings.forEach { finding ->
+                                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(finding.severity.uppercase() + " • " + finding.title, color = if (finding.severity == "High") Color(0xFFFF6B6B) else Cyan, fontWeight = FontWeight.Bold)
+                                            Text(finding.file, style = MaterialTheme.typography.labelSmall)
+                                            Text(finding.detail)
+                                            Text("Suggested fix: " + finding.fix, style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                }
                                 Button(onClick = {
-                                    val action = if (hostOn) LocalHostService.ACTION_STOP else LocalHostService.ACTION_START
-                                    val intent = Intent(context, LocalHostService::class.java).setAction(action)
-                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && !hostOn) context.startForegroundService(intent) else context.startService(intent)
-                                    hostOn = !hostOn
-                                    status = if (hostOn) "Local host start requested" else "Local host stop requested"
-                                }, modifier = Modifier.weight(1f)) {
-                                    Icon(if (hostOn) Icons.Default.Stop else Icons.Default.PlayArrow, null)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text(if (hostOn) "Stop host" else "Start host")
+                                    val report = buildString {
+                                        appendLine("SafeBuild v1.0 — RC Empire")
+                                        appendLine("Local heuristic security report")
+                                        appendLine("Project: " + selectedName.ifBlank { "URL audit or selected source" })
+                                        appendLine("Findings: " + findings.size)
+                                        findings.forEach { appendLine("\n[" + it.severity + "] " + it.title + "\nFile/target: " + it.file + "\nIssue: " + it.detail + "\nSuggested fix: " + it.fix) }
+                                        appendLine("\nThis report is not a certification or guarantee of security.")
+                                    }
+                                    val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_SUBJECT, "SafeBuild security report"); putExtra(Intent.EXTRA_TEXT, report) }
+                                    runCatching { context.startActivity(Intent.createChooser(intent, "Share security report")) }
+                                        .onFailure { status = "Could not share report: " + it.message }
+                                }, modifier = Modifier.fillMaxWidth()) {
+                                    Icon(Icons.Default.Share, null); Spacer(Modifier.width(8.dp)); Text("Share report")
                                 }
-                                OutlinedButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://127.0.0.1:8088/"))) }, modifier = Modifier.weight(1f)) {
-                                    Icon(Icons.Default.OpenInBrowser, null)
-                                    Spacer(Modifier.width(6.dp))
-                                    Text("Open preview")
+                            }
+                        }
+                        "Settings" -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text("Settings & support", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Text("Appearance", fontWeight = FontWeight.Bold)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(if (dark) "Dark theme" else "Light theme", modifier = Modifier.weight(1f))
+                                        Switch(checked = dark, onCheckedChange = { dark = it })
+                                    }
+                                    HorizontalDivider()
+                                    Text("SafeBuild v1.0 • Developed by RC Empire", fontWeight = FontWeight.Bold)
+                                    Text("support.rcempire@gmail.com", color = Cyan, modifier = Modifier.clickable {
+                                        runCatching { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:support.rcempire@gmail.com?subject=SafeBuild%20Support"))) }
+                                            .onFailure { status = "No email app found: " + it.message }
+                                    })
+                                    Text("YouTube: RC RAJA GAMER 2.0", color = Cyan, modifier = Modifier.clickable {
+                                        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://youtube.com/@RCRAJAGAMER2.0"))) }
+                                            .onFailure { status = "Could not open YouTube: " + it.message }
+                                    })
                                 }
                             }
-                        }
-                    }
-                }
-                item { Text("Findings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
-                if (findings.isEmpty()) {
-                    item {
-                        Surface(color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(16.dp)) {
-                            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.CheckCircleOutline, null, tint = Cyan)
-                                Spacer(Modifier.width(10.dp))
-                                Text("No scan results yet. Select a project and run a scan.")
+                            Text("Scans are heuristic. Review findings yourself; a clean scan does not prove a project is secure.", style = MaterialTheme.typography.bodySmall)
+                            OutlinedButton(onClick = {
+                                tutorialStep = 0
+                                showTutorial = true
+                                tutorialPrefs.edit().putBoolean("completed", false).apply()
+                            }, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Default.HelpOutline, null); Spacer(Modifier.width(8.dp)); Text("Show quick-start guide")
                             }
-                        }
-                    }
-                } else {
-                    items(findings) { finding ->
-                        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(finding.severity.uppercase(), color = if (finding.severity == "High") Color(0xFFFF6B6B) else Cyan, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(finding.title, fontWeight = FontWeight.Bold)
-                                }
-                                Text(finding.file, style = MaterialTheme.typography.labelSmall)
-                                Text(finding.detail)
-                                Text("Suggested fix: ${finding.fix}", color = MaterialTheme.colorScheme.onSurface.copy(alpha = .75f))
-                            }
-                        }
-                    }
-                }
-                if (page == "Settings") item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Column(Modifier.padding(16.dp)) {
-                            Text("Appearance", fontWeight = FontWeight.Bold)
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(if (dark) "Night mode" else "Day mode", modifier = Modifier.weight(1f))
-                                Switch(checked = dark, onCheckedChange = { dark = it })
-                            }
-                            Text("SafeBuild v1.0 • RC Empire", color = Cyan)
-                        }
-                    }
-                }
-                if (page == "Reports") item {
-                    Button(onClick = {
-                        val report = buildString {
-                            appendLine("SafeBuild v1.0 — RC Empire")
-                            appendLine("Local heuristic scan report")
-                            appendLine("File: $selectedName")
-                            appendLine("Findings: ${findings.size}")
-                            findings.forEach { appendLine("\n[${it.severity}] ${it.title}\nFile: ${it.file}\nIssue: ${it.detail}\nSuggested fix: ${it.fix}") }
-                            appendLine("\nSupport: support.rcempire@gmail.com")
-                            appendLine("YouTube: https://youtube.com/@RCRAJAGAMER2.0")
-                            appendLine("This report is not a certification or guarantee of security.")
-                        }
-                        val intent = Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_SUBJECT, "SafeBuild security report"); putExtra(Intent.EXTRA_TEXT, report) }
-                        context.startActivity(Intent.createChooser(intent, "Share security report"))
-                    }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Share, null); Spacer(Modifier.width(8.dp)); Text("Export / share report") }
-                }
-                if (page == "About & Support") item {
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("About & Support", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            Text("SafeBuild v1.0 — Local Autonomous AI Security Auditor & Auto-Healer")
-                            Text("Developed & Maintained by RC Empire")
-                            Text("Support: support.rcempire@gmail.com", modifier = Modifier.clickable {
-                                val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:support.rcempire@gmail.com?subject=SafeBuild%20Support"))
-                                context.startActivity(intent)
-                            }, color = Cyan)
-                            Text("YouTube: RC RAJA GAMER 2.0", modifier = Modifier.clickable {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://youtube.com/@RCRAJAGAMER2.0")))
-                            }, color = Cyan)
-                            Text("Help desk: Email support for technical assistance or feature requests.")
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeAction(title: String, detail: String, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(18.dp)
+    ) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, contentDescription = null, tint = Cyan, modifier = Modifier.size(30.dp))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(title, fontWeight = FontWeight.Bold)
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = .7f))
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = "Open " + title)
         }
     }
 }
