@@ -229,6 +229,41 @@ fun SafeBuildApp() {
                         }
                     }
                 }
+
+                item {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                        Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                PulsingShield(Modifier.size(30.dp))
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("Local Web Preview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    Text(if (hostOn) "RUNNING • port 8088" else "STOPPED • device-local server", color = if (hostOn) Cyan else MaterialTheme.colorScheme.onSurface.copy(alpha = .65f), style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                            Text("Preview files placed in SafeBuild's private hosted-site folder. The root page must be index.html. Local hosting is not a public internet link.", style = MaterialTheme.typography.bodySmall)
+                            Text("http://127.0.0.1:8088/", color = Cyan)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Button(onClick = {
+                                    val action = if (hostOn) LocalHostService.ACTION_STOP else LocalHostService.ACTION_START
+                                    val intent = Intent(context, LocalHostService::class.java).setAction(action)
+                                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && !hostOn) context.startForegroundService(intent) else context.startService(intent)
+                                    hostOn = !hostOn
+                                    status = if (hostOn) "Local host start requested" else "Local host stop requested"
+                                }, modifier = Modifier.weight(1f)) {
+                                    Icon(if (hostOn) Icons.Default.Stop else Icons.Default.PlayArrow, null)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text(if (hostOn) "Stop host" else "Start host")
+                                }
+                                OutlinedButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://127.0.0.1:8088/"))) }, modifier = Modifier.weight(1f)) {
+                                    Icon(Icons.Default.OpenInBrowser, null)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Open preview")
+                                }
+                            }
+                        }
+                    }
+                }
                 item { Text("Findings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold) }
                 if (findings.isEmpty()) {
                     item {
