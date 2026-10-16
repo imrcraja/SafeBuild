@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0b1220"><meta name="description" content="SafeBuild local-first security auditing by RC Empire">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/styles.css">
+<title>SafeBuild — RC Empire</title>
+</head>
+<body>
+<div id="splash" class="splash"><div class="splash-mark"><span>⌑</span></div><div class="splash-name">Safe<span>Build</span></div><div class="brand-pill">RC EMPIRE · LOCAL SECURITY</div><div class="pulse"><i></i><i></i><i></i></div><p>Preparing secure workspace…</p></div>
+<div class="app-shell" id="app" hidden>
+<aside class="sidebar">
+  <a class="brand" href="#"><span class="shield">S</span><span>Safe<strong>Build</strong><small>by RC Empire</small></span></a>
+  <div class="side-label">WORKSPACE</div>
+  <button class="nav active" data-page="dashboard">◈ <span>Security overview</span></button>
+  <button class="nav" data-page="scanner">⌕ <span>Project scanner</span></button>
+  <button class="nav" data-page="reports">▤ <span>Reports & fixes</span></button>
+  <div class="side-label">PREFERENCES</div>
+  <button class="nav" data-page="settings">⚙ <span>Settings</span></button>
+  <button class="nav" data-page="about">ⓘ <span>About & support</span></button>
+  <div class="sidebar-bottom"><span class="status-dot"></span> Local workspace <small>No cloud storage</small></div>
+</aside>
+<main class="main">
+<header class="topbar"><div><div class="eyebrow">LOCAL SECURITY WORKSPACE</div><h1 id="page-title">Security overview</h1></div><div class="top-actions"><span class="local-chip"><i></i> Processing locally</span><button id="theme-toggle" class="icon-btn" aria-label="Toggle day/night theme">☼</button><div class="avatar">RC</div></div></header>
+<section class="page" id="dashboard-page">
+<div class="welcome panel"><div><div class="eyebrow cyan">RC EMPIRE · SECURE BY DESIGN</div><h2>Build with confidence.</h2><p>Inspect your project, review security risks, and prepare safer deployment settings — without cloud storage.</p><button class="primary" data-goto="scanner">＋ Start a security scan <span>→</span></button></div><div class="hero-shield">⬡<span>⌘</span></div></div>
+<div class="stats"><div class="stat panel"><span class="stat-icon blue">⌕</span><div><small>Files scanned</small><strong id="files-count">0</strong><em>Current session</em></div></div><div class="stat panel"><span class="stat-icon amber">△</span><div><small>Findings</small><strong id="findings-count">0</strong><em>Review recommended</em></div></div><div class="stat panel"><span class="stat-icon green">✓</span><div><small>Fixes applied</small><strong id="fixes-count">0</strong><em>Verified changes only</em></div></div></div>
+<div class="section-head"><div><h3>Start here</h3><p>Choose how you want to inspect your application.</p></div><span class="subtle">2 scan modes</span></div>
+<div class="mode-grid"><button class="mode-card panel" data-goto="scanner"><span class="mode-icon">↗</span><span class="mode-tag">REMOTE CHECK</span><h3>Live URL audit</h3><p>Review HTTP security headers on a public website you own or are authorized to assess.</p><span class="card-link">Audit a website →</span></button><button class="mode-card panel" data-goto="scanner"><span class="mode-icon">⌘</span><span class="mode-tag">LOCAL ANALYSIS</span><h3>Scan project files</h3><p>Inspect a ZIP or source file for common risky code patterns without executing the project.</p><span class="card-link">Upload project →</span></button></div>
+<div class="privacy-note"><span>◉</span><div><strong>Private by design</strong><p>Uploads are handled by the local service and stored in a temporary workspace. URL audits require network access.</p></div></div>
+</section>
+<section class="page" id="scanner-page" hidden>
+<div class="section-head"><div><h3>Choose a scan mode</h3><p>Scan only projects and websites you own or have permission to test.</p></div></div>
+<div class="tabs"><button class="tab active" data-mode="file">Local project</button><button class="tab" data-mode="url">Live URL</button></div>
+<div class="panel scan-panel" id="file-mode"><form id="file-form"><label class="dropzone" for="project-file"><span class="upload-icon">↑</span><strong>Choose a project ZIP or source file</strong><span>ZIP up to 20 MB · HTML, JS/TS, PHP, Python, JSON, CSS</span><input id="project-file" type="file" accept=".zip,.html,.htm,.js,.mjs,.cjs,.jsx,.ts,.tsx,.php,.py,.json,.yaml,.yml,.css" required></label><div class="field-row"><label>Hosting target<select id="hosting"><option value="cloudflare">Cloudflare Pages</option><option value="vercel">Vercel</option><option value="firebase">Firebase Hosting</option><option value="nginx">Custom VPS / Nginx</option></select></label><label>Plan tier<select id="tier"><option>Free</option><option>Paid</option></select></label><label>Database<select id="database"><option>None</option><option>SQLite</option><option>Supabase</option><option>MongoDB</option></select></label></div><div class="callout">ⓘ Hardcoded keys are reported as a gentle advisory only. Local development values will not block your scan.</div><button class="primary full" type="submit">Scan local project <span>→</span></button></form></div>
+<div class="panel scan-panel" id="url-mode" hidden><form id="url-form"><label class="field-label" for="url-input">Public website URL</label><input id="url-input" type="url" placeholder="https://example.com" required><p class="field-help">Checks the first HTTP response and selected security headers. Network access is required.</p><div class="callout">Use only on sites you own or have explicit authorization to assess. This is a limited header audit, not a penetration test.</div><button class="primary full" type="submit">Audit URL <span>→</span></button></form></div>
+<div id="scan-status" class="status-message" aria-live="polite" hidden></div>
+<div id="results" hidden><div class="section-head"><div><h3>Scan results</h3><p id="results-summary"></p></div><button class="secondary" id="export-report">Export report</button></div><div id="findings-list" class="findings"></div><div class="panel fix-panel"><h3>Prepare security configuration</h3><p>Generate a hosting-specific starter configuration. Review compatibility before deploying.</p><button id="make-config" class="primary">Generate configuration →</button><pre id="config-output" hidden></pre><button id="download-config" class="secondary" hidden>Download configuration</button></div></div>
+</section>
+<section class="page" id="reports-page" hidden><div class="panel empty-state"><span>▤</span><h3>Session reports</h3><p>Run a scan to create findings for this session. Reports are not uploaded to a cloud service.</p><button class="primary" data-goto="scanner">Run a scan →</button></div></section>
+<section class="page" id="settings-page" hidden><div class="panel content-panel"><h3>Appearance</h3><p>Choose the dashboard theme.</p><div class="setting-row"><div><strong>Day / Night mode</strong><small>Switch between light and dark dashboard colors.</small></div><button id="theme-setting" class="secondary">Toggle theme</button></div><div class="setting-row"><div><strong>Temporary files</strong><small>Uploaded source files are kept in a local temporary folder for this session workflow.</small></div><span class="local-chip">Local only</span></div></div><div class="panel content-panel"><h3>Scan policy</h3><p>Static checks are heuristic; review findings and generated configuration before using them in production.</p><p class="muted">SafeBuild does not execute uploaded source code and does not claim that a clean scan proves a project is secure.</p></div></section>
+<section class="page" id="about-page" hidden><div class="panel content-panel about-brand"><div class="about-mark">S<span>B</span></div><div><h2>SafeBuild <span class="version">v1.0</span></h2><p>Local Autonomous AI Security Auditor & Auto-Healer</p><div class="brand-pill">CREATED & MAINTAINED BY RC EMPIRE</div></div></div><div class="panel content-panel"><h3>About the creator</h3><p><strong>RC Empire</strong> — Registered MSME Enterprise.</p><div class="setting-row"><div><strong>Official YouTube channel</strong><small>RC RAJA GAMER 2.0</small></div><a class="secondary link-button" href="https://youtube.com/@RCRAJAGAMER2.0" target="_blank" rel="noopener noreferrer">Open channel ↗</a></div><div class="setting-row"><div><strong>Developer support</strong><small>Technical assistance and feature requests</small></div><a class="secondary link-button" href="mailto:support.rcempire@gmail.com">Email support ↗</a></div><p class="muted">Contact support.rcempire@gmail.com for technical assistance, bug reports, or feature requests.</p></div><div class="panel content-panel"><h3>Privacy & limitations</h3><p>Project scans run through the local service. Live URL audits make a network request. Security findings are best-effort signals and require verification. Generated headers can affect site behavior; test before deployment.</p></div></section>
+<footer>SafeBuild <span>•</span> RC Empire <span>•</span> Local-first security tools</footer>
+</main></div>
+<script src="/app.js"></script>
+</body></html>
