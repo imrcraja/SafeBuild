@@ -1,0 +1,99 @@
+name: SafeBuild all-in-one package
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.9
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+          cmdline-tools-version: 'latest'
+      - name: Build debug APK
+        run: gradle --no-daemon assembleDebug
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: SafeBuild-Android
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: npm install
+      - name: Check project scaffold
+        run: npm run build
+      - name: Run tests
+        run: npm test
+      - name: Build Windows x86 and x64 installers
+        run: npm run dist:win
+      - name: Upload Windows installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: SafeBuild-Windows
+          path: dist/*.exe
+          if-no-files-found: error
+
+  bundle:
+    runs-on: ubuntu-latest
+    needs: [android, windows]
+    steps:
+      - name: Download Android artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SafeBuild-Android
+          path: package/Android
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: SafeBuild-Windows
+          path: package/Windows
+      - name: Add package notes
+        run: |
+          cat > package/README.txt <<'EOF'
+          SafeBuild combined build package
+          
+          Android/
+            Android debug APK (minimum OS configured by the project: Android 8+)
+          
+          Windows/
+            Windows installers for x64 and x86, if both build targets succeed.
+            Windows 7 SP1 compatibility is a target, not yet verified on a real Windows 7 machine.
+          
+          Install only on devices you own or are authorized to administer.
+          EOF
+      - name: Create single ZIP
+        run: cd package && zip -r ../SafeBuild-All-Builds.zip .
+      - name: Upload single combined ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: SafeBuild-All-Builds
+          path: SafeBuild-All-Builds.zip
+          if-no-files-found: error
