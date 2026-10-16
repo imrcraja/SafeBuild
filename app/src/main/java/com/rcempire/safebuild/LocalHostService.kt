@@ -38,7 +38,7 @@ class LocalHostService : Service() {
                 val raw = session.uri.removePrefix("/")
                 val decoded = runCatching { java.net.URLDecoder.decode(raw, "UTF-8") }.getOrDefault("")
                 val segments = decoded.split("/", "\\\\")
-                if (decoded.startsWith("/") || segments.any { it == ".." } || decoded.contains('\\u0000')) {
+                if (decoded.startsWith("/") || segments.any { it == ".." } || decoded.indexOf(0.toChar()) >= 0) {
                     return newFixedLengthResponse(Response.Status.FORBIDDEN, MIME_PLAINTEXT, "Forbidden")
                 }
                 val target = File(root, if (decoded.isBlank()) "index.html" else decoded).canonicalFile
